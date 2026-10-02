@@ -1,62 +1,81 @@
-# Scratch LLM
+# scratch-llm
 
-Scratch Japanese SLM preparation project.
+LLMを作ってみる — 日本語の小型言語モデル（SLM）をスクラッチから学習するプロジェクトです。
 
-Source presentation:
-https://docs.google.com/presentation/d/1nJgEltvNbSp5p4-GGDq2VtGXr6rvbMovR3CZI3AA5j0/edit?usp=sharing
+- 計算資源: RTX A6000 48GB × 2
+- 初号機: 約300Mパラメータ、context 4096、まずはbase model（SFT・対話化は後段）
+- 方針の詳細: [`docs/training-prep.md`](docs/training-prep.md)、作業ログは [`docs/`](docs/README.md)
 
-## Local Materials
+## ディレクトリ構成
 
-- `slides.pdf` - exported copy of the Google Slides deck
-- `slides.pptx` - editable deck export
-- `slides-text.txt` - extracted deck text
+- `configs/` - corpus・tokenizer・学習・評価の設定
+- `scripts/` - データ準備・tokenizer学習・事前学習・生成のスクリプト
+- `docs/` - 設計ドキュメントと日付付き作業ログ
+- `src/scratch_llm/` - Pythonパッケージ（予約）
+- `data/`, `artifacts/`, `checkpoints/`, `runs/`, `logs/` - 生成物（git管理外）
 
-## Project Layout
+## 環境構築
 
-- `configs/` - corpus, tokenizer, training, and evaluation configs
-- `data/` - generated local data artifacts, ignored by git
-- `docs/` - project documentation and dated work logs
-- `scripts/` - data preparation utilities
-- `src/scratch_llm/` - Python package namespace
-
-## Environment
-
-Use `uv` for environment management.
-
-The sandbox may not allow writing to the default `uv` cache under the home directory, so commands below use a project-local cache:
+環境管理には `uv` を使います。PyTorchはCUDA 12.4版を入れます。
 
 ```bash
-UV_CACHE_DIR=.uv-cache uv lock
+UV_CACHE_DIR=.uv-cache uv sync --extra tokenizer --extra training
 ```
 
-## Current Seed Pipeline
+## パイプライン
 
-The current pipeline uses `slides-text.txt` only as a tiny seed corpus to verify the data flow.
-It is not real pretraining data.
+### 1. Corpus準備（日本語Wikipedia → cleaning → tokenizer学習）
 
-Run the preparation steps:
+HF `wikimedia/wikipedia` の `20231101.ja` を `data/raw/hf/wikipedia/` にダウンロードしたうえで:
 
 ```bash
-UV_CACHE_DIR=.uv-cache uv run python scripts/prepare_seed_corpus.py
-UV_CACHE_DIR=.uv-cache uv run python scripts/clean_corpus.py
-UV_CACHE_DIR=.uv-cache uv run python scripts/build_tokenizer_corpus.py
-UV_CACHE_DIR=.uv-cache uv run python scripts/summarize_corpus.py data/cleaned/corpus-v001-cleaned.jsonl
+scripts/run_corpus_v002.sh
 ```
 
-Generated outputs:
+中身は次の順に実行します。
 
-- `data/manifests/corpus-v001.jsonl`
-- `data/raw/local/slides-text.jsonl`
-- `data/cleaned/corpus-v001-cleaned.jsonl`
-- `data/interim/tokenizer-corpus.txt`
-- `data/reports/corpus-v001-cleaning-report.json`
+1. `scripts/convert_wikipedia.py` - parquet → JSONL、manifest（`data/manifests/corpus-v002.jsonl`）を更新
+2. `scripts/clean_corpus.py` - 正規化、短文・低日本語率・完全重複の除去
+3. `scripts/build_tokenizer_corpus.py` - tokenizer学習用テキストを作成
+4. `scripts/train_tokenizer.py` - SentencePiece（unigram, 48k, byte fallback）を学習
 
-## Next Data Work
-
-The next step is to add real corpus sources to `configs/corpus-sources.jsonl` and convert them into JSONL records with this shape:
+JSONLの文書形式:
 
 ```json
 {"id":"source_doc_id","source_id":"source_name","text":"document text","meta":{}}
 ```
 
-Then extend `data/manifests/corpus-v001.jsonl` with the generated source files and rerun cleaning.
+### 2. Tokenize
+
+```bash
+.venv/bin/python scripts/tokenize_corpus.py
+```
+
+`data/tokenized/corpus-v002-spm48k/{train,val}.bin`（uint16の連結token列）と `meta.json` を出力します。
+
+### 3. 事前学習
+
+```bash
+.venv/bin/torchrun --nproc_per_node=2 scripts/pretrain.py \
+  --config configs/training/dryrun-001-300m-ctx4k.json
+# 再開する場合は --resume を付ける
+```
+
+- checkpoint: `checkpoints/<run_id>/step_XXXXXXX/`（HF形式 + optimizer等の `train_state.pt`）
+- 学習ログ: `runs/<run_id>/metrics.jsonl`
+
+### 4. 生成サンプル
+
+```bash
+.venv/bin/python scripts/generate_samples.py --checkpoint checkpoints/<run_id>/step_XXXXXXX
+```
+
+`configs/eval/prompt-set-v001.jsonl` のプロンプトに対する続きを生成します。
+
+## 旧seed pipeline
+
+`slides-text.txt`（企画スライドの抽出テキスト）を使った極小seed corpusでの動作確認用スクリプト（`prepare_seed_corpus.py` など）も残しています。`slides-text.txt` 自体は公開repoには含めていません。
+
+## ライセンス
+
+コードはMIT License。学習データ（日本語Wikipedia）は CC BY-SA 4.0 / GFDL に従います。

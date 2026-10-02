@@ -2,3 +2,8 @@
 {"prompt_id":"ja_explain_001","kind":"explanation","prompt":"小型言語モデルでtokenizerの品質が重要になる理由を説明してください。","notes":"post-SFT prompt; useful after SFT or instruction tuning"}
 {"prompt_id":"ja_style_001","kind":"style","prompt":"以下の文章を自然な敬体で続けてください。\n今日はモデル学習の準備として、","notes":"style and repetition check"}
 
+{"prompt_id":"ja_wiki_001","kind":"continuation","prompt":"東京都は、日本の首都であり、","notes":"encyclopedic continuation (in-domain for Wikipedia)"}
+{"prompt_id":"ja_wiki_002","kind":"continuation","prompt":"織田信長は、戦国時代から安土桃山時代にかけての武将で、","notes":"encyclopedic continuation, history"}
+{"prompt_id":"ja_news_001","kind":"continuation","prompt":"気象庁によると、今週末は西日本を中心に","notes":"news-style continuation"}
+{"prompt_id":"ja_list_001","kind":"continuation","prompt":"機械学習の代表的な手法には、次のようなものがある。\n- 線形回帰\n-","notes":"bullet list continuation"}
+{"prompt_id":"ja_plain_001","kind":"style","prompt":"昨日は朝から雨が降っていた。駅まで歩く途中で","notes":"plain-form narrative continuation, repetition check"}

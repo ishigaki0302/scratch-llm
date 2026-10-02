@@ -18,7 +18,7 @@
   },
   "training": {
     "seed": 1,
-    "micro_batch_size": 8,
+    "micro_batch_size": 4,
     "global_batch_size": 128,
     "max_steps": 200,
     "warmup_steps": 40,
