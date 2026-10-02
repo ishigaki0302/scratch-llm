@@ -9,6 +9,8 @@
 
 ## 重要ドキュメント
 
+- **`2026-10-02-session-handoff.md` - 最新の引き継ぎ（実行中ジョブと次にやること）。まずこれを読む**
+
 - `training-prep.md` - 学習準備の基本方針と進め方
 - `corpus-design.md` - corpus設計とmanifest方針
 - `gpu-handoff.md` - GPUが空いた後に進むための引き継ぎ
@@ -17,3 +19,4 @@
 
 - `2026-09-27-training-prep-first-pass.md` - 学習準備ロードマップ初版
 - `2026-09-27-pipeline-and-data-prep.md` - CPU-only pipeline準備ログ
+- `2026-10-02-gpu-first-run.md` - GPU初回作業: Wikipedia corpus, tokenizer v001, スループット計測, dry run

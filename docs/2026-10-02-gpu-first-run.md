@@ -42,7 +42,32 @@ UV_CACHE_DIR=.uv-cache uv sync --extra tokenizer --extra training
 - 設定: `configs/tokenizer/tokenizer-v001.json`（unigram, 48k, byte fallback, nmt_nfkc, split_digits）
 - special: unk=0, bos=1, eos=2, pad=3。SFT用に `<|system|> <|user|> <|assistant|> <|end|>` を予約
 
-（結果は下に追記）
+学習時間: 約8分（CPU 20 threads）。出力 `artifacts/tokenizers/tokenizer-v001-spm48k.{model,vocab}`（gitignore）。
+
+評価（cleaned corpusから1,000文書を等間隔抽出）:
+
+| 指標 | 値 |
+|---|---|
+| 文字/token | 1.864 |
+| byte fallback率 | 0.38% |
+| unk | 0 |
+
+分割例:
+
+- `東京都は、日本の首都であり、` → `▁東京都 / は / 、 / 日本 / の首都 / であり / 、`（14文字→7token）
+- `2026年10月2日に…` → 数字は1桁ずつ（split_digits）
+- URL・英語・コードは細切れ（`https://example.com` → `http / s / :// / ex / amp / le …`）。日本語Wikipediaのみで学習したため。英語/code混入を始めたらtokenizer v002で再学習する
+
+## 3.5 Tokenize
+
+`scripts/tokenize_corpus.py`（20 worker, 約5分）→ `data/tokenized/corpus-v002-spm48k/`
+
+| split | 文書 | token |
+|---|---|---|
+| train | 1,281,279 | 1,372,611,766 |
+| val（doc id hashで0.2%） | 2,547 | 2,716,105 |
+
+各文書は `<bos> ... <eos>` で連結。学習時はランダム位置から4096 token窓を切り出す（文書境界のattention maskはしない）。
 
 ## 4. スループット計測（合成データ）
 
@@ -60,4 +85,7 @@ UV_CACHE_DIR=.uv-cache uv sync --extra tokenizer --extra training
 
 見積もり: 38k tok/s で 30B token ≈ 9.1日, 1.5B token（Wikipedia 1 epoch）≈ 11時間。
 
-（dry run以降は下に追記）
+## 5. dry run / run-002
+
+16:43 dryrun-001 開始（step 15 で loss 8.31, 38.2k tok/s）。完了後に run-002 が自動起動する設定。
+実行中ジョブと確認方法は `2026-10-02-session-handoff.md` を参照。結果は次セッションでここに追記する。
