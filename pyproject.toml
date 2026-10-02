@@ -1,0 +1,38 @@
+[project]
+name = "scratch-llm"
+version = "0.1.0"
+description = "Data and training preparation pipeline for a small Japanese language model."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+tokenizer = [
+  "sentencepiece>=0.2.0",
+]
+training = [
+  "accelerate>=0.34.0",
+  "datasets>=2.20.0",
+  "torch>=2.3.0",
+  "transformers>=4.44.0",
+  "setuptools>=70",
+]
+dev = [
+  "ruff>=0.6.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu124" }
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true

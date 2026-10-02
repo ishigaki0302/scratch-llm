@@ -1,0 +1,32 @@
+{
+  "run_id": "run-001-300m-ctx4k",
+  "model": {
+    "family": "llama_like_decoder",
+    "target_parameters": 300000000,
+    "context_length": 4096,
+    "vocab_size": 48000
+  },
+  "data": {
+    "corpus_manifest": "data/manifests/corpus-v001.jsonl",
+    "token_target": 30000000000,
+    "language_mix": {
+      "ja": 0.9,
+      "en": 0.05,
+      "code": 0.05
+    }
+  },
+  "training": {
+    "precision": "bf16",
+    "optimizer": "adamw",
+    "learning_rate": null,
+    "warmup_ratio": 0.01,
+    "checkpoint_interval_steps": null,
+    "eval_interval_steps": null
+  },
+  "hardware": {
+    "gpu": "A6000 48GB",
+    "num_gpus": 2
+  },
+  "status": "draft"
+}
+

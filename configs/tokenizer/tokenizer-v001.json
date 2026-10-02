@@ -1,0 +1,30 @@
+{
+  "tokenizer_id": "tokenizer-v001-spm48k",
+  "algorithm": "sentencepiece_unigram",
+  "vocab_size": 48000,
+  "byte_fallback": true,
+  "character_coverage": 0.9995,
+  "normalization": "nmt_nfkc",
+  "input": "data/interim/tokenizer-corpus.txt",
+  "outputs": {
+    "model": "artifacts/tokenizers/tokenizer-v001-spm48k.model",
+    "vocab": "artifacts/tokenizers/tokenizer-v001-spm48k.vocab"
+  },
+  "notes": "v001: trained 2026-10-02 on Japanese Wikipedia subset. Chat symbols reserved for SFT.",
+  "input_sentence_size": 5000000,
+  "max_sentence_length": 16384,
+  "split_digits": true,
+  "user_defined_symbols": [
+    "<|system|>",
+    "<|user|>",
+    "<|assistant|>",
+    "<|end|>"
+  ],
+  "special_ids": {
+    "unk": 0,
+    "bos": 1,
+    "eos": 2,
+    "pad": 3
+  },
+  "training_input_note": "data/interim/tokenizer-corpus.txt built from cleaned corpus-v002 (wikipedia_ja) with --max-docs 400000"
+}

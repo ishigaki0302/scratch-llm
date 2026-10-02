@@ -1,0 +1,38 @@
+{
+  "run_id": "dryrun-001-300m-ctx4k",
+  "model": {
+    "family": "llama_like_decoder",
+    "vocab_size": 48000,
+    "hidden_size": 1024,
+    "intermediate_size": 2560,
+    "num_layers": 24,
+    "num_heads": 16,
+    "num_kv_heads": 8,
+    "context_length": 4096,
+    "rope_theta": 10000.0,
+    "tie_embeddings": true
+  },
+  "data": {
+    "train_bin": "data/tokenized/corpus-v002-spm48k/train.bin",
+    "val_bin": "data/tokenized/corpus-v002-spm48k/val.bin"
+  },
+  "training": {
+    "seed": 1,
+    "micro_batch_size": 8,
+    "global_batch_size": 128,
+    "max_steps": 200,
+    "warmup_steps": 40,
+    "learning_rate": 0.0006,
+    "min_lr_ratio": 0.1,
+    "weight_decay": 0.1,
+    "betas": [0.9, 0.95],
+    "grad_clip": 1.0,
+    "compile": false,
+    "log_interval": 5,
+    "eval_interval": 50,
+    "eval_steps": 20,
+    "checkpoint_interval": 100,
+    "keep_checkpoints": 3
+  },
+  "notes": "Dry run: ~105M tokens (200 steps x 128 x 4096) on Japanese Wikipedia. Pipeline/throughput/resume check."
+}

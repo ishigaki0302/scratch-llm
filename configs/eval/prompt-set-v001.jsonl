@@ -1,0 +1,4 @@
+{"prompt_id":"ja_continuation_001","kind":"continuation","prompt":"日本語の大規模言語モデルをスクラッチから学習する場合、最初に重要になるのは","notes":"technical prose continuation"}
+{"prompt_id":"ja_explain_001","kind":"explanation","prompt":"小型言語モデルでtokenizerの品質が重要になる理由を説明してください。","notes":"post-SFT prompt; useful after SFT or instruction tuning"}
+{"prompt_id":"ja_style_001","kind":"style","prompt":"以下の文章を自然な敬体で続けてください。\n今日はモデル学習の準備として、","notes":"style and repetition check"}
+

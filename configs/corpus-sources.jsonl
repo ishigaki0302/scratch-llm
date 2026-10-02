@@ -1,0 +1,2 @@
+{"source_id":"local_slides_text","name":"Scratch LLM deck extracted text","kind":"local_seed","language":"ja","license":"internal_working_material","path":"slides-text.txt","include":true,"notes":"Seed corpus for pipeline sanity checks only. Not intended as real pretraining data."}
+
