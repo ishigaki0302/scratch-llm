@@ -1,0 +1,43 @@
+{
+  "run_id": "bench-compile-torch27-eager",
+  "model": {
+    "family": "llama_like_decoder",
+    "vocab_size": 48000,
+    "hidden_size": 1024,
+    "intermediate_size": 2560,
+    "num_layers": 24,
+    "num_heads": 16,
+    "num_kv_heads": 8,
+    "context_length": 4096,
+    "rope_theta": 10000.0,
+    "tie_embeddings": true
+  },
+  "data": {
+    "train_bin": "data/tokenized/corpus-v002-spm48k/train.bin",
+    "val_bin": "data/tokenized/corpus-v002-spm48k/val.bin"
+  },
+  "training": {
+    "seed": 1,
+    "micro_batch_size": 4,
+    "global_batch_size": 128,
+    "max_steps": 25,
+    "warmup_steps": 5,
+    "learning_rate": 0.0006,
+    "min_lr_ratio": 0.1,
+    "weight_decay": 0.1,
+    "betas": [
+      0.9,
+      0.95
+    ],
+    "grad_clip": 1.0,
+    "compile": false,
+    "log_interval": 5,
+    "eval_interval": 1000,
+    "eval_steps": 4,
+    "checkpoint_interval": 100000,
+    "keep_checkpoints": 1
+  },
+  "notes": "torch.compile throughput bench (eager); 25 steps, not for training",
+  "checkpoint_dir": "checkpoints/bench",
+  "run_dir": "runs/bench"
+}

@@ -1,0 +1,57 @@
+{
+  "run_id": "smoke-mix",
+  "model": {
+    "family": "llama_like_decoder",
+    "vocab_size": 48000,
+    "hidden_size": 1024,
+    "intermediate_size": 2560,
+    "num_layers": 24,
+    "num_heads": 16,
+    "num_kv_heads": 8,
+    "context_length": 4096,
+    "rope_theta": 10000.0,
+    "tie_embeddings": true
+  },
+  "data": {
+    "train": [
+      {
+        "name": "a",
+        "bin": "data/tokenized/corpus-v002-spm48k/train.bin",
+        "weight": 0.2
+      },
+      {
+        "name": "b",
+        "bin": "data/tokenized/corpus-v002-spm48k/train.bin",
+        "weight": 0.8
+      }
+    ],
+    "val": {
+      "wiki": "data/tokenized/corpus-v002-spm48k/val.bin",
+      "web": "data/tokenized/corpus-v002-spm48k/val.bin"
+    }
+  },
+  "training": {
+    "seed": 3,
+    "micro_batch_size": 4,
+    "global_batch_size": 128,
+    "max_steps": 10,
+    "warmup_steps": 2,
+    "learning_rate": 0.0006,
+    "min_lr_ratio": 0.1,
+    "weight_decay": 0.1,
+    "betas": [
+      0.9,
+      0.95
+    ],
+    "grad_clip": 1.0,
+    "compile": false,
+    "log_interval": 5,
+    "eval_interval": 5,
+    "eval_steps": 2,
+    "checkpoint_interval": 10,
+    "keep_checkpoints": 1
+  },
+  "notes": "Wikipedia (corpus-v002) 20% + FineWeb-2 ja 4 shards (corpus-v003) 80%, from scratch. 18000 steps x 524,288 tok = 9.44B tokens (~1.4 epoch wiki, ~1 epoch web). ~69h on 2x A6000.",
+  "checkpoint_dir": "checkpoints/bench",
+  "run_dir": "runs/bench"
+}

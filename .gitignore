@@ -47,3 +47,4 @@ slides-text.txt
 
 # Small hand-written configs are tracked
 !configs/**/*.jsonl
+.venv-compile/

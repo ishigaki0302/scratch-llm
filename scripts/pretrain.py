@@ -4,7 +4,10 @@
 Launch:
   torchrun --nproc_per_node=2 scripts/pretrain.py --config configs/training/<run>.json [--resume]
 
-Data: flat uint16 token files written by scripts/tokenize_corpus.py.
+Data: flat uint16 token files written by scripts/tokenize_corpus.py. Either a single source
+  ("train_bin"/"val_bin") or a weighted mixture:
+    "train": [{"name": "wiki", "bin": "...", "weight": 0.2}, {"name": "web", ...}]
+    "val":   {"wiki": "...", "web": "..."}   (val_loss_<name> is logged for each)
 Outputs:
   checkpoints/<run_id>/step_XXXXXXX/  (HF model + train_state.pt)
   checkpoints/<run_id>/latest          (text file with latest step dir name)
@@ -51,14 +54,28 @@ def setup_dist() -> tuple[int, int, int]:
 
 
 class TokenSampler:
-    def __init__(self, path: str, seq_len: int, seed: int):
-        self.data = np.memmap(path, dtype=np.uint16, mode="r")
+    """Random seq_len windows; with several sources, each row picks a source by weight."""
+
+    def __init__(self, paths: str | list[str], seq_len: int, seed: int,
+                 weights: list[float] | None = None):
+        paths = [paths] if isinstance(paths, str) else paths
+        self.data = [np.memmap(p, dtype=np.uint16, mode="r") for p in paths]
+        w = np.asarray(weights or [1.0] * len(paths), dtype=np.float64)
+        self.probs = w / w.sum()
         self.seq_len = seq_len
         self.rng = np.random.default_rng(seed)
 
     def batch(self, bsz: int, device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
-        ix = self.rng.integers(0, len(self.data) - self.seq_len - 1, size=bsz)
-        x = np.stack([self.data[i : i + self.seq_len + 1].astype(np.int64) for i in ix])
+        if len(self.data) == 1:
+            src = [0] * bsz
+        else:
+            src = self.rng.choice(len(self.data), size=bsz, p=self.probs)
+        rows = []
+        for s in src:
+            data = self.data[s]
+            i = self.rng.integers(0, len(data) - self.seq_len - 1)
+            rows.append(data[i : i + self.seq_len + 1].astype(np.int64))
+        x = np.stack(rows)
         t = torch.from_numpy(x).pin_memory().to(device, non_blocking=True)
         return t[:, :-1], t[:, 1:]
 
@@ -158,8 +175,15 @@ def main() -> None:
     assert grad_accum * micro_bsz * world == tcfg["global_batch_size"]
     tokens_per_step = tcfg["global_batch_size"] * seq_len
 
-    train_sampler = TokenSampler(dcfg["train_bin"], seq_len, seed=tcfg.get("seed", 0) * 1000 + rank)
-    val_sampler = TokenSampler(dcfg["val_bin"], seq_len, seed=12345 + rank)
+    train_seed = tcfg.get("seed", 0) * 1000 + rank
+    if "train" in dcfg:
+        train_sampler = TokenSampler([s["bin"] for s in dcfg["train"]], seq_len, seed=train_seed,
+                                     weights=[s["weight"] for s in dcfg["train"]])
+    else:
+        train_sampler = TokenSampler(dcfg["train_bin"], seq_len, seed=train_seed)
+    val_bins = dcfg["val"] if "val" in dcfg else {"": dcfg["val_bin"]}
+    val_samplers = {name: TokenSampler(path, seq_len, seed=12345 + rank)
+                    for name, path in val_bins.items()}
 
     if resume_dir is not None:
         state = torch.load(resume_dir / "train_state.pt", map_location="cpu", weights_only=False)
@@ -171,7 +195,10 @@ def main() -> None:
             print(f"resumed from {resume_dir} at step {start_step}", flush=True)
 
     raw_model = model
-    if tcfg.get("compile", False):
+    compile_mode = tcfg.get("compile", False)
+    if compile_mode == "model":
+        model.compile()
+    elif compile_mode:
         # Whole-model compile trips on transformers' output-capturing wrappers; compile per layer.
         for layer in raw_model.model.layers:
             layer.compile()
@@ -253,14 +280,20 @@ def main() -> None:
             t0, tokens_since = time.time(), 0
 
         if done % tcfg["eval_interval"] == 0 or done == stop_step:
-            vl = evaluate(raw_model, val_sampler, tcfg.get("eval_steps", 20), micro_bsz, device, autocast)
-            if world > 1:
-                t = torch.tensor(vl, device=device)
-                dist.all_reduce(t, op=dist.ReduceOp.AVG)
-                vl = t.item()
+            vls = {}
+            for name, sampler in val_samplers.items():
+                vl = evaluate(raw_model, sampler, tcfg.get("eval_steps", 20), micro_bsz, device, autocast)
+                if world > 1:
+                    t = torch.tensor(vl, device=device)
+                    dist.all_reduce(t, op=dist.ReduceOp.AVG)
+                    vl = t.item()
+                vls[name] = vl
             if master:
-                rec = {"step": done, "val_loss": round(vl, 4), "val_ppl": round(math.exp(vl), 2),
-                       "time": time.time()}
+                vl = float(np.mean(list(vls.values())))
+                rec = {"step": done, "val_loss": round(vl, 4), "val_ppl": round(math.exp(vl), 2)}
+                if len(vls) > 1 or "" not in vls:
+                    rec.update({f"val_loss_{n}": round(v, 4) for n, v in vls.items()})
+                rec["time"] = time.time()
                 print(json.dumps(rec), flush=True)
                 metrics_f.write(json.dumps(rec) + "\n")
                 metrics_f.flush()
